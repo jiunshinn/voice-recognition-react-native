@@ -1,31 +1,90 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  SafeAreaView,
+  Button,
+  Text,
+  View,
+  NativeEventEmitter,
+  NativeModules,
+} from 'react-native';
+import { startRecognition } from 'voice-recognition-react-native';
 
-import { StyleSheet, View, Text } from 'react-native';
-import { multiply } from 'voice-recognition-react-native';
+const { VoiceRecognitionReactNative } = NativeModules;
+const recognitionEmitter = new NativeEventEmitter(VoiceRecognitionReactNative);
 
-export default function App() {
-  const [result, setResult] = React.useState<number | undefined>();
+const App = () => {
+  const [recognizedText, setRecognizedText] = useState<string>('');
+  const [isRecognizing, setIsRecognizing] = useState<boolean>(false);
 
-  React.useEffect(() => {
-    multiply(3, 7).then(setResult);
+  useEffect(() => {
+    const subscription = recognitionEmitter.addListener(
+      'onRecognitionResult',
+      (result: string) => {
+        setRecognizedText(result);
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <Text>Result: {result}</Text>
-    </View>
-  );
-}
+  const handleStartRecognition = async () => {
+    try {
+      setIsRecognizing(true);
+      const result = await startRecognition();
+      setRecognizedText(result);
+      setIsRecognizing(false);
+    } catch (error) {
+      setIsRecognizing(false);
+    }
+  };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  box: {
-    width: 60,
-    height: 60,
-    marginVertical: 20,
-  },
-});
+  const handleStopRecognition = () => {
+    if (
+      VoiceRecognitionReactNative &&
+      typeof VoiceRecognitionReactNative.stopRecognition === 'function'
+    ) {
+      VoiceRecognitionReactNative.stopRecognition();
+      setIsRecognizing(false);
+    } else {
+      console.error('stopRecognition is not a function');
+    }
+  };
+
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000',
+      }}
+    >
+      <Button
+        title="Start Recognition"
+        onPress={handleStartRecognition}
+        disabled={isRecognizing}
+      />
+      <Button
+        title="Stop Recognition"
+        onPress={handleStopRecognition}
+        disabled={!isRecognizing}
+      />
+      <View
+        style={{
+          padding: 10,
+          backgroundColor: '#333',
+          borderRadius: 5,
+          marginTop: 20,
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 16 }}>
+          Recognized Text: {recognizedText}
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default App;
