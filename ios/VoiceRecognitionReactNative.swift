@@ -19,7 +19,7 @@ class VoiceRecognitionReactNative: RCTEventEmitter {
   }
 
   override func supportedEvents() -> [String]! {
-    return ["onRecognitionResult"]
+    return ["onRecognitionResult", "onRecognitionError"]
   }
   
   @objc(startRecognition:reject:)
@@ -102,13 +102,27 @@ class VoiceRecognitionReactNative: RCTEventEmitter {
         }
       }
       
-      if let error = error {
+      if let error = error as NSError?, error.code != 216 {
+        // 216 is the error code for when the recognition is cancelled by the user
+        self.sendEvent(withName: "onRecognitionError", body: error.localizedDescription)
         self.audioEngine.stop()
         inputNode.removeTap(onBus: 0)
         self.recognitionRequest = nil
         self.recognitionTask = nil
         if let reject = self.recognitionReject {
           reject("recognition_error", "Speech recognition error.", error)
+          self.recognitionResolve = nil
+          self.recognitionReject = nil
+        }
+      } else if let error = error as NSError?, error.code == 216 {
+        // Handle user-initiated cancellation differently if needed
+        self.audioEngine.stop()
+        inputNode.removeTap(onBus: 0)
+        self.recognitionRequest = nil
+        self.recognitionTask = nil
+        // Optional: Notify React Native about the cancellation
+        if let resolve = self.recognitionResolve {
+          resolve("Recognition stopped")
           self.recognitionResolve = nil
           self.recognitionReject = nil
         }

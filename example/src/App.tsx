@@ -1,55 +1,46 @@
 import React, { useState, useEffect } from 'react';
+import { SafeAreaView, Button, Text, View } from 'react-native';
 import {
-  SafeAreaView,
-  Button,
-  Text,
-  View,
-  NativeEventEmitter,
-  NativeModules,
-} from 'react-native';
-import { startRecognition } from 'voice-recognition-react-native';
-
-const { VoiceRecognitionReactNative } = NativeModules;
-const recognitionEmitter = new NativeEventEmitter(VoiceRecognitionReactNative);
+  startRecognition,
+  stopRecognition,
+  addRecognitionListener,
+  removeRecognitionListener,
+} from 'voice-recognition-react-native';
 
 const App = () => {
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [isRecognizing, setIsRecognizing] = useState<boolean>(false);
 
   useEffect(() => {
-    const subscription = recognitionEmitter.addListener(
-      'onRecognitionResult',
-      (result: string) => {
-        setRecognizedText(result);
-      }
-    );
+    const handleResult = (result: string) => {
+      setRecognizedText(result);
+    };
+
+    const handleError = (error: string) => {
+      console.error('Recognition error received: ', error);
+      setIsRecognizing(false);
+    };
+
+    addRecognitionListener(handleResult, handleError);
 
     return () => {
-      subscription.remove();
+      removeRecognitionListener();
     };
   }, []);
 
   const handleStartRecognition = async () => {
     try {
       setIsRecognizing(true);
-      const result = await startRecognition();
-      setRecognizedText(result);
-      setIsRecognizing(false);
+      await startRecognition();
     } catch (error) {
+      console.error('Recognition error: ', error);
       setIsRecognizing(false);
     }
   };
 
   const handleStopRecognition = () => {
-    if (
-      VoiceRecognitionReactNative &&
-      typeof VoiceRecognitionReactNative.stopRecognition === 'function'
-    ) {
-      VoiceRecognitionReactNative.stopRecognition();
-      setIsRecognizing(false);
-    } else {
-      console.error('stopRecognition is not a function');
-    }
+    stopRecognition();
+    setIsRecognizing(false);
   };
 
   return (

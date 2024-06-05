@@ -1,5 +1,6 @@
 import {
   NativeModules,
+  NativeEventEmitter,
   Platform,
   PermissionsAndroid,
   Alert,
@@ -7,6 +8,13 @@ import {
 } from 'react-native';
 
 const { VoiceRecognitionReactNative } = NativeModules;
+const recognitionEmitter = new NativeEventEmitter(VoiceRecognitionReactNative);
+
+type RecognitionResultCallback = (result: string) => void;
+type RecognitionErrorCallback = (error: string) => void;
+
+let resultSubscription: any = null;
+let errorSubscription: any = null;
 
 const requestAndroidPermission = async (): Promise<boolean> => {
   const permission = PermissionsAndroid.PERMISSIONS.RECORD_AUDIO;
@@ -42,6 +50,7 @@ const requestAndroidPermission = async (): Promise<boolean> => {
       return false;
     }
   } catch (err) {
+    console.error('Permission request error: ', err);
     return false;
   }
 };
@@ -59,4 +68,36 @@ export const startRecognition = async (): Promise<string> => {
   } else {
     throw new Error('Platform not supported');
   }
+};
+
+export const stopRecognition = (): void => {
+  VoiceRecognitionReactNative.stopRecognition();
+};
+
+export const addRecognitionListener = (
+  onResult: RecognitionResultCallback,
+  onError: RecognitionErrorCallback
+): void => {
+  resultSubscription = recognitionEmitter.addListener(
+    'onRecognitionResult',
+    onResult
+  );
+  errorSubscription = recognitionEmitter.addListener(
+    'onRecognitionError',
+    (error: string) => {
+      if (
+        error !== 'Recognition stopped' &&
+        error !== 'Recognition request was canceled'
+      ) {
+        onError(error);
+      }
+    }
+  );
+};
+
+export const removeRecognitionListener = (): void => {
+  resultSubscription?.remove();
+  errorSubscription?.remove();
+  resultSubscription = null;
+  errorSubscription = null;
 };

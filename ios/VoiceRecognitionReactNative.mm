@@ -4,3 +4,5 @@
 RCT_EXTERN_METHOD(startRecognition: (RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(stopRecognition)
 @end
+
+
