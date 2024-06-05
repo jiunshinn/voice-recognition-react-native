@@ -17,6 +17,8 @@ yarn add voice-recognition-react-native
 
 in ios/Podfile
 
+(Optional)Manual Link
+
 ```rb
 pod 'RNSpeechRecognition', :path => '../node_modules/voice-recognition-react-native/ios'
 ```
@@ -46,7 +48,8 @@ in android/app/src/main/AndroidManifest.xml
 <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 ```
 
-in MainApplication.java
+(Optional)Manual Link
+in MainApplication.kt
 
 ```java
 import com.voicerecognitionreactnative.VoiceRecognitionReactNativePackage; #add this line
